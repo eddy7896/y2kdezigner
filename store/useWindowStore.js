@@ -171,34 +171,42 @@ export const useWindowStore = create((set, get) => ({
     const openWindows = state.windows.filter(w => w.isOpen && !w.isMinimized);
     if (openWindows.length === 0) return state;
 
-    const startX = 110; 
-    const startY = 15;
-    const endX = window.innerWidth - 15;
-    const endY = window.innerHeight - 48; 
+    const startX = 120; 
+    const startY = 20;
+    const gap = 15;
     
-    const availWidth = Math.max(400, endX - startX);
-    const availHeight = Math.max(300, endY - startY);
+    let currentX = startX;
+    let currentY = startY;
+    let maxRowHeight = 0;
+    const positions = {};
 
-    const N = openWindows.length;
-    const cols = Math.ceil(Math.sqrt(N));
-    const rows = Math.ceil(N / cols);
+    openWindows.forEach(w => {
+      const wWidth = w.width || 300;
+      const wHeight = w.height || 200;
 
-    const cellWidth = availWidth / cols;
-    const cellHeight = availHeight / rows;
+      if (currentX + wWidth > window.innerWidth - 20 && currentX > startX) {
+        currentX = startX;
+        currentY += maxRowHeight + gap;
+        maxRowHeight = 0;
+      }
+
+      if (currentY + wHeight > window.innerHeight - 50 && currentY > startY) {
+        currentY = startY + (Object.keys(positions).length * 20) % 100;
+      }
+
+      positions[w.id] = { x: currentX, y: currentY };
+
+      currentX += wWidth + gap;
+      maxRowHeight = Math.max(maxRowHeight, wHeight);
+    });
 
     return {
       windows: state.windows.map(w => {
-        const idx = openWindows.findIndex(ow => ow.id === w.id);
-        if (idx !== -1) {
-          const colIndex = idx % cols;
-          const rowIndex = Math.floor(idx / cols);
-          
+        if (positions[w.id]) {
           return {
             ...w,
-            x: startX + colIndex * cellWidth + 5,
-            y: startY + rowIndex * cellHeight + 5,
-            width: Math.max(300, cellWidth - 10),
-            height: Math.max(200, cellHeight - 10)
+            x: positions[w.id].x,
+            y: positions[w.id].y
           };
         }
         return w;
