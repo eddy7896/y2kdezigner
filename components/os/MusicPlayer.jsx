@@ -47,6 +47,11 @@ const getEmbedUrl = (url) => {
   return getYoutubeEmbed(url) || getSpotifyEmbed(url) || getSoundCloudEmbed(url);
 };
 
+// URL validation helper for HTML5 audio sources
+const isValidUrl = (url) => {
+  return typeof url === 'string' && (url.startsWith('http') || url.startsWith('/') || url.startsWith('data:'));
+};
+
 export default function MusicPlayer() {
   const [tracks, setTracks] = useState([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -191,11 +196,18 @@ export default function MusicPlayer() {
       setIsPlaying(false);
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     } else {
-      setIsPlaying(true);
       if (!isEmbed) {
+        if (!isValidUrl(currentTrack.url)) return;
+        setIsPlaying(true);
         setTimeout(() => {
-          if (audioRef.current) audioRef.current.play();
+          if (audioRef.current) {
+            audioRef.current.play().catch(err => {
+              console.error("Audio play failed:", err);
+            });
+          }
         }, 50);
+      } else {
+        setIsPlaying(true);
       }
       setTimeout(() => {
         initAudioVisualizer();
@@ -204,21 +216,32 @@ export default function MusicPlayer() {
   };
 
   const playTrackIndex = (idx) => {
-    setCurrentTrackIndex(idx);
-    setIsPlaying(true);
+    const track = tracks[idx];
+    if (!track) return;
     
-    const nextEmbed = getEmbedUrl(tracks[idx]?.url);
+    setCurrentTrackIndex(idx);
+    
+    const nextEmbed = getEmbedUrl(track.url);
     
     if (!nextEmbed) {
+      if (!isValidUrl(track.url)) {
+        setIsPlaying(false);
+        stopNativeAudio();
+        return;
+      }
+      setIsPlaying(true);
       // Direct file play
       setTimeout(() => {
         if (audioRef.current) {
-          audioRef.current.src = tracks[idx].url;
-          audioRef.current.play();
+          audioRef.current.src = track.url;
+          audioRef.current.play().catch(err => {
+            console.error("Audio play failed:", err);
+          });
         }
         initAudioVisualizer();
       }, 100);
     } else {
+      setIsPlaying(true);
       // Stop native audio since iframe controls it
       stopNativeAudio();
       setTimeout(() => {
@@ -321,7 +344,7 @@ export default function MusicPlayer() {
 
         <audio 
           ref={audioRef} 
-          src={isEmbed ? null : (currentTrack?.url || null)} 
+          src={currentTrack && !isEmbed && isValidUrl(currentTrack.url) ? currentTrack.url : undefined} 
           onEnded={handleEnded}
           crossOrigin="anonymous"
         />
