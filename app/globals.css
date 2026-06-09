@@ -35,13 +35,61 @@ body {
   background-image: radial-gradient(#808080 1px, transparent 1px);
   background-size: 20px 20px;
   
-  /* Classic Retro Arrow Cursor (Scaled 2x) */
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' shape-rendering='crispEdges'><g transform='scale(2)'><path d='M2 2v15l4-4 3 7 2-1-3-7 5-1z' fill='black' stroke='white' stroke-width='1.5'/></g></svg>") 4 4, default;
+  /* Classic Retro Arrow Cursor */
+  cursor: url('/cursors/Cursor_1.cur'), default;
 }
 
-/* Classic Retro Hand Cursor for interactables (Scaled 2x) */
-a, button, [role="button"], .cursor-pointer {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' shape-rendering='crispEdges'><g transform='scale(2)'><path d='M9 13V3a2 2 0 014 0v5a2 2 0 012 0v1a2 2 0 012 0v1a2 2 0 012 0v7l-4 4H7l-3-6v-5z' fill='white' stroke='black' stroke-width='1.5'/><path d='M9 13V3M13 8v1M15 9v1M17 10v1' stroke='black' stroke-width='1.5'/></g></svg>") 18 6, pointer !important;
+/* Classic Retro Hand Cursor for interactables */
+a, button, [role="button"], .cursor-pointer, select {
+  cursor: url('/cursors/Cursor_15.cur'), pointer !important;
+}
+
+/* Text beam cursor */
+input[type="text"], input[type="number"], input[type="password"], input[type="search"], textarea {
+  cursor: url('/cursors/Beam.cur'), text;
+}
+
+/* Custom Cursors Classes & Inline Style overrides */
+.cursor-retro-default, [style*="cursor: default"] {
+  cursor: url('/cursors/Cursor_1.cur'), default !important;
+}
+.cursor-retro-pointer, [style*="cursor: pointer"] {
+  cursor: url('/cursors/Cursor_15.cur'), pointer !important;
+}
+.cursor-retro-text, [style*="cursor: text"], [style*="cursor: text;"] {
+  cursor: url('/cursors/Beam.cur'), text !important;
+}
+.cursor-retro-crosshair, [style*="cursor: crosshair"] {
+  cursor: url('/cursors/Cursor_4.cur'), crosshair !important;
+}
+.cursor-retro-move, [style*="cursor: move"] {
+  cursor: url('/cursors/Cursor_10.cur'), move !important;
+}
+.cursor-retro-wait, .cursor-retro-busy {
+  cursor: url('/cursors/Cursor_3.cur'), wait !important;
+}
+.cursor-retro-appstarting {
+  cursor: url('/cursors/Cursor_12.cur'), progress !important;
+}
+.cursor-retro-help {
+  cursor: url('/cursors/Cursor_13.cur'), help !important;
+}
+.cursor-retro-no {
+  cursor: url('/cursors/Cursor_11.cur'), not-allowed !important;
+}
+
+/* Window Resize Handle Overrides */
+[style*="cursor: ew-resize"], [style*="cursor: col-resize"], [style*="cursor: w-resize"], [style*="cursor: e-resize"] {
+  cursor: url('/cursors/Cursor_19.cur'), ew-resize !important;
+}
+[style*="cursor: ns-resize"], [style*="cursor: row-resize"], [style*="cursor: n-resize"], [style*="cursor: s-resize"] {
+  cursor: url('/cursors/Cursor_18.cur'), ns-resize !important;
+}
+[style*="cursor: nwse-resize"], [style*="cursor: nw-resize"], [style*="cursor: se-resize"] {
+  cursor: url('/cursors/Cursor_6.cur'), nwse-resize !important;
+}
+[style*="cursor: nesw-resize"], [style*="cursor: ne-resize"], [style*="cursor: sw-resize"] {
+  cursor: url('/cursors/Cursor_7.cur'), nesw-resize !important;
 }
 
 /* Y2K Global Utility Classes */

@@ -12,11 +12,14 @@ import ProgressBarDialog from './ProgressBarDialog';
 import MusicPlayer from './MusicPlayer';
 import GradientWindow from './GradientWindow';
 import Canvas from '../canvas/Canvas';
+import { useWindowStore } from '@/store/useWindowStore';
 
 export default function Desktop() {
+  const isProgressActive = useWindowStore(state => state.isProgressActive);
+
   return (
     <div 
-      className="w-full h-screen bg-[#008080] overflow-hidden flex flex-col relative font-sans select-none"
+      className={`w-full h-screen bg-[#008080] overflow-hidden flex flex-col relative font-sans select-none ${isProgressActive ? 'cursor-retro-wait' : ''}`}
       style={{ backgroundImage: "url('/system/wallpaper.png')", backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
       {/* Desktop Icons */}
