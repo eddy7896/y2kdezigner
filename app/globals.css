@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+:root {
+  --background: #c0c0c0; /* Classic Windows 9x / Y2K gray background */
+  --foreground: #000000;
+  
+  /* Y2K Colors */
+  --color-y2k-blue: #000080;
+  --color-y2k-silver: #c0c0c0;
+  --color-y2k-pink: #ff00ff;
+  --color-y2k-yellow: #ffff00;
+  --color-y2k-green: #00ff00;
+  
+  /* Solid shadows */
+  --shadow-y2k: 4px 4px 0px 0px #000000;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-y2k-blue: var(--color-y2k-blue);
+  --color-y2k-silver: var(--color-y2k-silver);
+  --color-y2k-pink: var(--color-y2k-pink);
+  --color-y2k-yellow: var(--color-y2k-yellow);
+  --color-y2k-green: var(--color-y2k-green);
+  --shadow-y2k: var(--shadow-y2k);
+  --font-y2k: "Tahoma", "Verdana", sans-serif;
+  --font-pixel: "Courier New", monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-y2k);
+  background-image: radial-gradient(#808080 1px, transparent 1px);
+  background-size: 20px 20px;
+  
+  /* Classic Retro Arrow Cursor (Scaled 2x) */
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' shape-rendering='crispEdges'><g transform='scale(2)'><path d='M2 2v15l4-4 3 7 2-1-3-7 5-1z' fill='black' stroke='white' stroke-width='1.5'/></g></svg>") 4 4, default;
+}
+
+/* Classic Retro Hand Cursor for interactables (Scaled 2x) */
+a, button, [role="button"], .cursor-pointer {
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' shape-rendering='crispEdges'><g transform='scale(2)'><path d='M9 13V3a2 2 0 014 0v5a2 2 0 012 0v1a2 2 0 012 0v1a2 2 0 012 0v7l-4 4H7l-3-6v-5z' fill='white' stroke='black' stroke-width='1.5'/><path d='M9 13V3M13 8v1M15 9v1M17 10v1' stroke='black' stroke-width='1.5'/></g></svg>") 18 6, pointer !important;
+}
+
+/* Y2K Global Utility Classes */
+@layer utilities {
+  .y2k-border {
+    border: 2px solid #000000;
+  }
+  .y2k-panel {
+    background-color: var(--color-y2k-silver);
+    border: 2px outset #ffffff;
+    border-bottom-color: #808080;
+    border-right-color: #808080;
+  }
+}
+
