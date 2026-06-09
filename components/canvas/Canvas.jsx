@@ -6,6 +6,189 @@ import KonvaImageNode from './KonvaImageNode';
 import KonvaTextNode from './KonvaTextNode';
 import jsPDF from 'jspdf';
 
+const parseHex = (hex) => {
+  if (!hex) return { r: 255, g: 255, b: 255, a: 1 };
+  const clean = hex.replace('#', '');
+  if (clean.length === 3) {
+    const r = parseInt(clean[0] + clean[0], 16);
+    const g = parseInt(clean[1] + clean[1], 16);
+    const b = parseInt(clean[2] + clean[2], 16);
+    return { r, g, b, a: 1 };
+  }
+  const r = parseInt(clean.substring(0, 2), 16) || 0;
+  const g = parseInt(clean.substring(2, 4), 16) || 0;
+  const b = parseInt(clean.substring(4, 6), 16) || 0;
+  let a = 1;
+  if (clean.length === 8) {
+    a = parseInt(clean.substring(6, 8), 16) / 255;
+  }
+  return { r, g, b, a };
+};
+
+const toHex = ({ r, g, b, a }) => {
+  const rs = Math.max(0, Math.min(255, Math.round(r))).toString(16).padStart(2, '0');
+  const gs = Math.max(0, Math.min(255, Math.round(g))).toString(16).padStart(2, '0');
+  const bs = Math.max(0, Math.min(255, Math.round(b))).toString(16).padStart(2, '0');
+  return `#${rs}${gs}${bs}`;
+};
+
+const interpolateColors = (color1, color2, ratio) => {
+  const c1 = parseHex(color1);
+  const c2 = parseHex(color2);
+  return toHex({
+    r: c1.r + (c2.r - c1.r) * ratio,
+    g: c1.g + (c2.g - c1.g) * ratio,
+    b: c1.b + (c2.b - c1.b) * ratio,
+    a: c1.a + (c2.a - c1.a) * ratio,
+  });
+};
+
+const getColorAtOffset = (stops, t) => {
+  if (stops.length === 0) return '#ffffff';
+  if (stops.length === 1) return stops[0].color;
+  
+  let lower = stops[0];
+  let upper = stops[stops.length - 1];
+  
+  for (let i = 0; i < stops.length - 1; i++) {
+    if (t >= stops[i].offset && t <= stops[i+1].offset) {
+      lower = stops[i];
+      upper = stops[i+1];
+      break;
+    }
+  }
+  
+  const range = upper.offset - lower.offset;
+  if (range === 0) return lower.color;
+  
+  const ratio = (t - lower.offset) / range;
+  return interpolateColors(lower.color, upper.color, ratio);
+};
+
+const getWarpedColorStops = (flatStops, curvature) => {
+  if (!flatStops || flatStops.length < 2) return [0, '#ffffff', 1, '#000000'];
+  
+  const stops = [];
+  for (let i = 0; i < flatStops.length; i += 2) {
+    stops.push({ offset: flatStops[i], color: flatStops[i+1] });
+  }
+  stops.sort((a, b) => a.offset - b.offset);
+
+  if (!curvature || Math.abs(curvature) < 0.01) {
+    return stops.flatMap(s => [s.offset, s.color]);
+  }
+
+  const applyCurvature = (offset, curv) => {
+    if (curv > 0) {
+      return Math.pow(offset, 1 + curv * 2.5);
+    } else {
+      return 1 - Math.pow(1 - offset, 1 - Math.abs(curv) * 2.5);
+    }
+  };
+
+  const N = 20; 
+  const warped = [];
+  for (let i = 0; i < N; i++) {
+    const t = i / (N - 1);
+    const color = getColorAtOffset(stops, t);
+    const warpedT = applyCurvature(t, curvature);
+    warped.push(warpedT, color);
+  }
+  return warped;
+};
+
+const getGradientProps = (n, canvasWidth, canvasHeight) => {
+  if (!n) return { fill: '#ffffff', fillPriority: 'color' };
+  if (!n.fillPriority || n.fillPriority === 'color') {
+    return { fill: n.fill || '#ffffff', fillPriority: 'color' };
+  }
+
+  let w = n.width || 100;
+  let h = n.height || 100;
+  if (n.type === 'circle') {
+    w = n.radius * 2;
+    h = n.radius * 2;
+  } else if (n.id === 'bg-rect') {
+    w = canvasWidth;
+    h = canvasHeight;
+  }
+
+  const baseStops = n.fillLinearGradientColorStops || n.fillRadialGradientColorStops || [0, '#ffffff', 1, '#000000'];
+  const colorStops = getWarpedColorStops(baseStops, n.fillCurvature);
+
+  if (n.fillPriority === 'linear-gradient') {
+    let sRatioX = n.fillLinearGradientStartPointRatioX ?? 0;
+    let sRatioY = n.fillLinearGradientStartPointRatioY ?? 0;
+    let eRatioX = n.fillLinearGradientEndPointRatioX ?? 1;
+    let eRatioY = n.fillLinearGradientEndPointRatioY ?? 0;
+
+    if (n.fillLinearGradientAngle !== undefined) {
+      const angleRad = (n.fillLinearGradientAngle * Math.PI) / 180;
+      const dx = 0.5 * Math.cos(angleRad);
+      const dy = 0.5 * Math.sin(angleRad);
+      sRatioX = 0.5 - dx;
+      sRatioY = 0.5 - dy;
+      eRatioX = 0.5 + dx;
+      eRatioY = 0.5 + dy;
+    }
+
+    let startX = w * sRatioX;
+    let startY = h * sRatioY;
+    let endX = w * eRatioX;
+    let endY = h * eRatioY;
+
+    if (n.type === 'circle') {
+      const r = n.radius || 50;
+      startX = sRatioX * 2 * r - r;
+      startY = sRatioY * 2 * r - r;
+      endX = eRatioX * 2 * r - r;
+      endY = eRatioY * 2 * r - r;
+    }
+
+    return {
+      fillPriority: 'linear-gradient',
+      fillLinearGradientStartPoint: { x: startX, y: startY },
+      fillLinearGradientEndPoint: { x: endX, y: endY },
+      fillLinearGradientColorStops: colorStops
+    };
+  }
+
+  if (n.fillPriority === 'radial-gradient') {
+    const sRatioX = n.fillRadialGradientStartPointRatioX ?? 0.5;
+    const sRatioY = n.fillRadialGradientStartPointRatioY ?? 0.5;
+    const eRatioX = n.fillRadialGradientEndPointRatioX ?? 0.5;
+    const eRatioY = n.fillRadialGradientEndPointRatioY ?? 0.5;
+    
+    let startX = w * sRatioX;
+    let startY = h * sRatioY;
+    let endX = w * eRatioX;
+    let endY = h * eRatioY;
+    let startR = Math.min(w, h) * (n.fillRadialGradientStartRadiusRatio ?? 0);
+    let endR = Math.min(w, h) * (n.fillRadialGradientEndRadiusRatio ?? 0.5);
+
+    if (n.type === 'circle') {
+      const r = n.radius || 50;
+      startX = sRatioX * 2 * r - r;
+      startY = sRatioY * 2 * r - r;
+      endX = eRatioX * 2 * r - r;
+      endY = eRatioY * 2 * r - r;
+      startR = r * (n.fillRadialGradientStartRadiusRatio ?? 0);
+      endR = r * (n.fillRadialGradientEndRadiusRatio ?? 1);
+    }
+
+    return {
+      fillPriority: 'radial-gradient',
+      fillRadialGradientStartPoint: { x: startX, y: startY },
+      fillRadialGradientStartRadius: startR,
+      fillRadialGradientEndPoint: { x: endX, y: endY },
+      fillRadialGradientEndRadius: endR,
+      fillRadialGradientColorStops: colorStops
+    };
+  }
+
+  return {};
+};
+
 export default function Canvas() {
   const containerRef = useRef(null);
   const stageRef = useRef(null);
@@ -23,6 +206,7 @@ export default function Canvas() {
   const canvasHeight = useCanvasStore(state => state.present.canvasHeight);
   const selectedIds = useCanvasStore(state => state.present.selectedIds);
   const dispatch = useCanvasStore(state => state.dispatch);
+  const background = useCanvasStore(state => state.present.background);
   
   const toolMode = useCanvasStore(state => state.toolMode);
   const defaultFill = useCanvasStore(state => state.defaultFill);
@@ -294,6 +478,7 @@ export default function Canvas() {
     if (node.type === 'group' || node.visible === false) return null;
     
     const nodeKey = isDraft ? 'draft' : node.id;
+    const gradientProps = getGradientProps(node, canvasWidth, canvasHeight);
 
     const commonProps = {
       id: node.id,
@@ -312,17 +497,18 @@ export default function Canvas() {
       onClick: () => handleNodeClick(node),
       onTap: () => handleNodeClick(node),
       onDragEnd: createDragEndHandler(node),
-      onTransformEnd: createTransformEndHandler(node)
+      onTransformEnd: createTransformEndHandler(node),
+      ...gradientProps
     };
 
     if (node.type === 'image') return <KonvaImageNode key={nodeKey} {...commonProps} node={node} onSelect={() => handleNodeClick(node)} />;
     if (node.type === 'text') return <KonvaTextNode key={nodeKey} {...commonProps} node={node} onSelect={() => handleNodeClick(node)} />;
     
     if (node.type === 'rectangle') {
-      return <Rect key={nodeKey} {...commonProps} width={node.width} height={node.height} fill={node.fill} stroke={node.stroke} strokeWidth={node.strokeWidth} />;
+      return <Rect key={nodeKey} {...commonProps} width={node.width} height={node.height} stroke={node.stroke} strokeWidth={node.strokeWidth} />;
     }
     if (node.type === 'circle') {
-      return <Circle key={nodeKey} {...commonProps} radius={node.radius} fill={node.fill} stroke={node.stroke} strokeWidth={node.strokeWidth} />;
+      return <Circle key={nodeKey} {...commonProps} radius={node.radius} stroke={node.stroke} strokeWidth={node.strokeWidth} />;
     }
     if (node.type === 'line' || node.type === 'pen') {
       return <Line key={nodeKey} {...commonProps} x={0} y={0} points={node.points} stroke={node.stroke} strokeWidth={node.strokeWidth} tension={node.tension || 0} lineCap="round" lineJoin="round" />;
@@ -417,17 +603,28 @@ export default function Canvas() {
               x={stagePos.x} y={stagePos.y}
             >
               <Layer ref={layerRef}>
-                <Rect 
-                  id="bg-rect" 
-                  x={0} y={0} 
-                  width={canvasWidth} height={canvasHeight} 
-                  fill={useCanvasStore.getState().present.background?.fill || "#ffffff"} 
-                  listening={false}
-                  shadowColor="rgba(0,0,0,0.5)"
-                  shadowBlur={10}
-                  shadowOffsetX={5}
-                  shadowOffsetY={5}
-                />
+                {(() => {
+                  const bgProps = getGradientProps({
+                    ...background,
+                    id: 'bg-rect',
+                    type: 'rectangle',
+                    width: canvasWidth,
+                    height: canvasHeight
+                  }, canvasWidth, canvasHeight);
+                  return (
+                    <Rect 
+                      id="bg-rect" 
+                      x={0} y={0} 
+                      width={canvasWidth} height={canvasHeight} 
+                      listening={false}
+                      shadowColor="rgba(0,0,0,0.5)"
+                      shadowBlur={10}
+                      shadowOffsetX={5}
+                      shadowOffsetY={5}
+                      {...bgProps}
+                    />
+                  );
+                })()}
                 {useCanvasStore.getState().present.background?.src && (
                   <KonvaImageNode node={{ id: 'bg-image-node', src: useCanvasStore.getState().present.background.src, x: 0, y: 0, width: canvasWidth, height: canvasHeight, scaleX: 1, scaleY: 1, rotation: 0 }} onSelect={() => {}} onDragEnd={() => {}} onTransformEnd={() => {}} />
                 )}

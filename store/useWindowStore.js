@@ -85,6 +85,18 @@ const defaultWindows = [
     width: 250,
     height: 180,
     zIndex: 4,
+  },
+  {
+    id: 'gradient',
+    title: 'Gradient Creator',
+    isOpen: false,
+    isMinimized: false,
+    isMaximized: false,
+    x: 100,
+    y: 150,
+    width: 320,
+    height: 480,
+    zIndex: 11,
   }
 ];
 

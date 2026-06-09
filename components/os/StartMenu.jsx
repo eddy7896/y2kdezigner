@@ -39,6 +39,11 @@ export default function StartMenu({ isOpen, closeMenu }) {
           label="Image FX" 
           onClick={() => handleLaunch('image')} 
         />
+        <MenuItem 
+          icon="/windows2000/Windows 2000 Administrative Tools.ico" 
+          label="Gradient Creator" 
+          onClick={() => handleLaunch('gradient')} 
+        />
         
         <div className="w-full h-0 border-t border-gray-400 border-b border-white my-1 mx-1 px-2" />
         
