@@ -64,9 +64,7 @@ export default function MusicPlayer() {
 
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const analyserRef = useRef(null);
-  const sourceRef = useRef(null);
+
   const animationRef = useRef(null);
 
   useEffect(() => {
@@ -93,30 +91,7 @@ export default function MusicPlayer() {
   const embedUrl = currentTrack ? getEmbedUrl(currentTrack.url) : null;
   const isEmbed = !!embedUrl;
 
-  // Initialize Web Audio API for synthesizer visualizer
   const initAudioVisualizer = () => {
-    if (!canvasRef.current) return;
-    
-    // We only need audioContext & analyser if it's NOT an embed!
-    if (!isEmbed && audioRef.current) {
-      if (!audioContextRef.current) {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        audioContextRef.current = new AudioContext();
-        analyserRef.current = audioContextRef.current.createAnalyser();
-        analyserRef.current.fftSize = 64; // Low res for blocky retro feel
-        
-        if (!sourceRef.current) {
-          sourceRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
-          sourceRef.current.connect(analyserRef.current);
-          analyserRef.current.connect(audioContextRef.current.destination);
-        }
-      }
-
-      if (audioContextRef.current.state === 'suspended') {
-        audioContextRef.current.resume();
-      }
-    }
-
     drawVisualizer();
   };
 
@@ -125,18 +100,15 @@ export default function MusicPlayer() {
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     
-    // If it's an embed or we don't have analyser, we use 32 bins for visualizer simulation
-    const bufferLength = (analyserRef.current && !isEmbed) ? analyserRef.current.frequencyBinCount : 32;
+    const bufferLength = 32;
     const dataArray = new Uint8Array(bufferLength);
     let frameCount = 0;
     
     const draw = () => {
       animationRef.current = requestAnimationFrame(draw);
       
-      if (analyserRef.current && !isEmbed) {
-        analyserRef.current.getByteFrequencyData(dataArray);
-      } else if (isPlaying) {
-        // Equalizer simulation for custom embeds / third party iframe players
+      if (isPlaying) {
+        // Equalizer simulation for all playing audio (including cross-origin presets)
         frameCount++;
         for (let i = 0; i < bufferLength; i++) {
           const baseVal = Math.sin(i * 0.3 + frameCount * 0.12) * 90 + 90;
@@ -346,7 +318,6 @@ export default function MusicPlayer() {
           ref={audioRef} 
           src={currentTrack && !isEmbed && isValidUrl(currentTrack.url) ? currentTrack.url : undefined} 
           onEnded={handleEnded}
-          crossOrigin="anonymous"
         />
 
         {/* Controls */}
