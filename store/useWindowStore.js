@@ -82,8 +82,8 @@ const defaultWindows = [
     isMaximized: false,
     x: 300,
     y: 300,
-    width: 250,
-    height: 180,
+    width: 260,
+    height: 280,
     zIndex: 4,
   },
   {
