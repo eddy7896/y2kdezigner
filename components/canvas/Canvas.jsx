@@ -2,6 +2,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Stage, Layer, Rect, Transformer, Circle, Line } from 'react-konva';
 import { useCanvasStore } from '@/store/useCanvasStore';
+import { useWindowStore } from '@/store/useWindowStore';
 import KonvaImageNode from './KonvaImageNode';
 import KonvaTextNode from './KonvaTextNode';
 import jsPDF from 'jspdf';
@@ -196,6 +197,11 @@ export default function Canvas() {
   const transformerRef = useRef(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [draftNode, setDraftNode] = useState(null);
+  const [showGrid, setShowGrid] = useState(false);
+  
+  const windowsList = useWindowStore(state => state.windows);
+  const openWindow = useWindowStore(state => state.openWindow);
+  const closeWindow = useWindowStore(state => state.closeWindow);
   
   // Zoom & Pan state
   const [stageScale, setStageScale] = useState(1);
@@ -543,7 +549,35 @@ export default function Canvas() {
             <div className="px-4 py-1 hover:bg-[#000080] hover:text-white" onClick={() => { setCustomWidthInput(canvasWidth); setCustomHeightInput(canvasHeight); setCustomSizeModalOpen(true); }}>Custom Size...</div>
           </div>
         </div>
-        <div className="px-2 py-1 hover:bg-[#000080] hover:text-white cursor-pointer">View</div>
+        <div className="group relative cursor-pointer">
+          <span className="px-2 py-1 hover:bg-[#000080] hover:text-white">View</span>
+          <div className="hidden group-hover:block absolute top-full left-0 bg-[#c0c0c0] border-2 border-white shadow-[2px_2px_0_#000000] min-w-[180px] py-1 text-black z-30">
+            <div className="px-4 py-1 text-[10px] text-gray-700 font-bold border-b border-gray-400 pb-1 mb-1">Toggle Windows</div>
+            {windowsList.map(w => {
+              const isOpen = w.isOpen;
+              return (
+                <div 
+                  key={w.id} 
+                  className="px-4 py-1 hover:bg-[#000080] hover:text-white flex justify-between items-center text-xs" 
+                  onClick={() => isOpen ? closeWindow(w.id) : openWindow(w.id)}
+                >
+                  <span>{w.title}</span>
+                  <span className="font-bold font-mono w-4 text-center">{isOpen ? '✓' : ''}</span>
+                </div>
+              );
+            })}
+            
+            <div className="border-b border-gray-500 my-1"></div>
+            <div className="px-4 py-1 text-[10px] text-gray-700 font-bold">Canvas Helpers</div>
+            <div 
+              className="px-4 py-1 hover:bg-[#000080] hover:text-white flex justify-between items-center text-xs"
+              onClick={() => setShowGrid(!showGrid)}
+            >
+              <span>Show Grid</span>
+              <span className="font-bold font-mono w-4 text-center">{showGrid ? '✓' : ''}</span>
+            </div>
+          </div>
+        </div>
         <div className="flex-1"></div>
         <div className="flex items-center space-x-2 text-xs mr-2">
           <span>Zoom: {Math.round(stageScale * 100)}%</span>
@@ -624,6 +658,38 @@ export default function Canvas() {
                       {...bgProps}
                     />
                   );
+                })()}
+                {/* Render Grid if active */}
+                {showGrid && (() => {
+                  const gridLines = [];
+                  const gridGap = 40;
+                  // Vertical lines
+                  for (let i = gridGap; i < canvasWidth; i += gridGap) {
+                    gridLines.push(
+                      <Line 
+                        key={`v-${i}`} 
+                        points={[i, 0, i, canvasHeight]} 
+                        stroke="#d3d3d3" 
+                        strokeWidth={1} 
+                        dash={[4, 4]} 
+                        listening={false} 
+                      />
+                    );
+                  }
+                  // Horizontal lines
+                  for (let i = gridGap; i < canvasHeight; i += gridGap) {
+                    gridLines.push(
+                      <Line 
+                        key={`h-${i}`} 
+                        points={[0, i, canvasWidth, i]} 
+                        stroke="#d3d3d3" 
+                        strokeWidth={1} 
+                        dash={[4, 4]} 
+                        listening={false} 
+                      />
+                    );
+                  }
+                  return gridLines;
                 })()}
                 {useCanvasStore.getState().present.background?.src && (
                   <KonvaImageNode node={{ id: 'bg-image-node', src: useCanvasStore.getState().present.background.src, x: 0, y: 0, width: canvasWidth, height: canvasHeight, scaleX: 1, scaleY: 1, rotation: 0 }} onSelect={() => {}} onDragEnd={() => {}} onTransformEnd={() => {}} />
