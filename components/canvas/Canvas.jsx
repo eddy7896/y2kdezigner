@@ -202,6 +202,7 @@ export default function Canvas() {
   const windowsList = useWindowStore(state => state.windows);
   const openWindow = useWindowStore(state => state.openWindow);
   const closeWindow = useWindowStore(state => state.closeWindow);
+  const arrangeWindows = useWindowStore(state => state.arrangeWindows);
   
   // Zoom & Pan state
   const [stageScale, setStageScale] = useState(1);
@@ -575,6 +576,15 @@ export default function Canvas() {
             >
               <span>Show Grid</span>
               <span className="font-bold font-mono w-4 text-center">{showGrid ? '✓' : ''}</span>
+            </div>
+            
+            <div className="border-b border-gray-500 my-1"></div>
+            <div className="px-4 py-1 text-[10px] text-gray-700 font-bold">Window Management</div>
+            <div 
+              className="px-4 py-1 hover:bg-[#000080] hover:text-white flex justify-between items-center text-xs font-bold"
+              onClick={arrangeWindows}
+            >
+              <span>Auto-Arrange Windows</span>
             </div>
           </div>
         </div>

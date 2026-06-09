@@ -165,6 +165,47 @@ export const useWindowStore = create((set, get) => ({
     windows: state.windows.map(w => w.id === id ? { ...w, ...bounds } : w)
   })),
 
+  arrangeWindows: () => set((state) => {
+    if (typeof window === 'undefined') return state;
+    
+    const openWindows = state.windows.filter(w => w.isOpen && !w.isMinimized);
+    if (openWindows.length === 0) return state;
+
+    const startX = 110; 
+    const startY = 15;
+    const endX = window.innerWidth - 15;
+    const endY = window.innerHeight - 48; 
+    
+    const availWidth = Math.max(400, endX - startX);
+    const availHeight = Math.max(300, endY - startY);
+
+    const N = openWindows.length;
+    const cols = Math.ceil(Math.sqrt(N));
+    const rows = Math.ceil(N / cols);
+
+    const cellWidth = availWidth / cols;
+    const cellHeight = availHeight / rows;
+
+    return {
+      windows: state.windows.map(w => {
+        const idx = openWindows.findIndex(ow => ow.id === w.id);
+        if (idx !== -1) {
+          const colIndex = idx % cols;
+          const rowIndex = Math.floor(idx / cols);
+          
+          return {
+            ...w,
+            x: startX + colIndex * cellWidth + 5,
+            y: startY + rowIndex * cellHeight + 5,
+            width: Math.max(300, cellWidth - 10),
+            height: Math.max(200, cellHeight - 10)
+          };
+        }
+        return w;
+      })
+    };
+  }),
+
   // Global Progress Dialog
   progressText: '',
   progressPercent: 0,
